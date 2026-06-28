@@ -1,10 +1,12 @@
 package com.example.ui
 
 import android.app.Application
+import android.content.Context
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.example.AodWidgetProvider
 import com.example.data.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -85,7 +87,10 @@ class AodViewModel(
                 } else if (_selectedListId.value == null) {
                     // Pre-select the pinned list or first list
                     val pinned = listData.find { it.isPinned }
-                    _selectedListId.value = pinned?.id ?: listData.firstOrNull()?.id
+                    val targetId = pinned?.id ?: listData.firstOrNull()?.id
+                    if (targetId != null) {
+                        selectList(targetId)
+                    }
                 }
             }
         }
@@ -112,22 +117,27 @@ class AodViewModel(
         repository.insertTask(AodTask(listId = secondListId, title = "Fresh spinach & garlic", priority = 0))
 
         _selectedListId.value = listId
+        AodWidgetProvider.triggerUpdate(getApplication())
     }
 
     fun selectList(listId: Int) {
         _selectedListId.value = listId
+        val sharedPrefs = getApplication<Application>().getSharedPreferences("aod_prefs", Context.MODE_PRIVATE)
+        sharedPrefs.edit().putInt("selected_list_id", listId).apply()
+        AodWidgetProvider.triggerUpdate(getApplication())
     }
 
     fun createNewList(title: String) {
         viewModelScope.launch {
             val listId = repository.insertList(AodList(title = title))
-            _selectedListId.value = listId.toInt()
+            selectList(listId.toInt())
         }
     }
 
     fun updateListTitle(list: AodList, newTitle: String) {
         viewModelScope.launch {
             repository.updateList(list.copy(title = newTitle))
+            AodWidgetProvider.triggerUpdate(getApplication())
         }
     }
 
@@ -137,12 +147,14 @@ class AodViewModel(
             if (_selectedListId.value == list.id) {
                 _selectedListId.value = lists.value.firstOrNull { it.id != list.id }?.id
             }
+            AodWidgetProvider.triggerUpdate(getApplication())
         }
     }
 
     fun pinList(listId: Int) {
         viewModelScope.launch {
             repository.pinList(listId)
+            AodWidgetProvider.triggerUpdate(getApplication())
         }
     }
 
@@ -152,24 +164,28 @@ class AodViewModel(
             repository.insertTask(
                 AodTask(listId = currentListId, title = title, priority = priority)
             )
+            AodWidgetProvider.triggerUpdate(getApplication())
         }
     }
 
     fun toggleTaskCompletion(task: AodTask) {
         viewModelScope.launch {
             repository.updateTask(task.copy(isCompleted = !task.isCompleted))
+            AodWidgetProvider.triggerUpdate(getApplication())
         }
     }
 
     fun deleteTask(task: AodTask) {
         viewModelScope.launch {
             repository.deleteTask(task)
+            AodWidgetProvider.triggerUpdate(getApplication())
         }
     }
 
     fun updateTaskPriority(task: AodTask, newPriority: Int) {
         viewModelScope.launch {
             repository.updateTask(task.copy(priority = newPriority))
+            AodWidgetProvider.triggerUpdate(getApplication())
         }
     }
 

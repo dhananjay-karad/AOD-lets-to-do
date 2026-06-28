@@ -57,55 +57,6 @@ fun AodMainScreen(viewModel: AodViewModel) {
     val pinnedList by viewModel.pinnedList.collectAsStateWithLifecycle()
     val selectedListId by viewModel.selectedListId.collectAsStateWithLifecycle()
     val selectedListTasks by viewModel.selectedListTasks.collectAsStateWithLifecycle()
-    val pinnedListTasks by viewModel.pinnedListTasks.collectAsStateWithLifecycle()
-    val isAodActive by viewModel.isAodActive.collectAsStateWithLifecycle()
-    val aodBrightness by viewModel.aodBrightness.collectAsStateWithLifecycle()
-    val showCompletedInAod by viewModel.showCompletedInAod.collectAsStateWithLifecycle()
-
-    val context = LocalContext.current
-    val activity = context as? Activity
-
-    // Handle system back button when AOD is active to exit AOD first
-    if (isAodActive) {
-        BackHandler {
-            viewModel.setAodActive(false)
-        }
-    }
-
-    // Configure Lockscreen & Screen On settings when AOD mode changes
-    LaunchedEffect(isAodActive) {
-        activity?.window?.let { window ->
-            if (isAodActive) {
-                // Keep screen on during AOD mode to act as desk display
-                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                
-                // Set flags to show window on top of locked screen
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-                    activity.setShowWhenLocked(true)
-                    activity.setTurnScreenOn(true)
-                } else {
-                    @Suppress("DEPRECATION")
-                    window.addFlags(
-                        WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
-                    )
-                }
-            } else {
-                // Restore standard screen management flags
-                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
-                    activity.setShowWhenLocked(false)
-                    activity.setTurnScreenOn(false)
-                } else {
-                    @Suppress("DEPRECATION")
-                    window.clearFlags(
-                        WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
-                    )
-                }
-            }
-        }
-    }
 
     Box(
         modifier = Modifier
@@ -118,8 +69,8 @@ fun AodMainScreen(viewModel: AodViewModel) {
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.safeDrawing)
         ) {
-            // Header Section
-            AodHeader(onStartAod = { viewModel.setAodActive(true) })
+            // Minimalist Header Section
+            TaskListHeader()
 
             // Content Area - Responsive side-by-side or stacked layout
             BoxWithConstraints(
@@ -195,26 +146,6 @@ fun AodMainScreen(viewModel: AodViewModel) {
                 }
             }
 
-            // Simple Tips & Guidance panel at the bottom
-            InstructionsFooter()
-        }
-
-        // Fullscreen Always-On Display (AOD) Screen Overlay Mode
-        AnimatedVisibility(
-            visible = isAodActive,
-            enter = fadeIn(animationSpec = tween(600)) + expandVertically(expandFrom = Alignment.CenterVertically),
-            exit = fadeOut(animationSpec = tween(600)) + shrinkVertically(shrinkTowards = Alignment.CenterVertically)
-        ) {
-            AodOverlayScreen(
-                pinnedList = pinnedList,
-                pinnedTasks = pinnedListTasks,
-                aodBrightness = aodBrightness,
-                showCompleted = showCompletedInAod,
-                onClose = { viewModel.setAodActive(false) },
-                onToggleTask = { viewModel.toggleTaskCompletion(it) },
-                onSetBrightness = { viewModel.setAodBrightness(it) },
-                onToggleShowCompleted = { viewModel.toggleShowCompletedInAod() }
-            )
         }
     }
 }
@@ -223,61 +154,27 @@ fun AodMainScreen(viewModel: AodViewModel) {
 // COMPONENT 1: HEADER
 // ==========================================
 @Composable
-fun AodHeader(onStartAod: () -> Unit) {
-    Card(
+fun TaskListHeader() {
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface
-        ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        shape = RoundedCornerShape(24.dp)
+            .padding(horizontal = 24.dp, vertical = 20.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = "AOD Logo",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(
-                        text = "AOD Task Overlay",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Configure lists to view while phone is locked.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            Button(
-                onClick = onStartAod,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier.testTag("activate_aod_button")
-            ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = "Activate AOD")
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("Activate AOD", fontWeight = FontWeight.Bold)
-            }
+        Column {
+            Text(
+                text = "Minimalist Tasks",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Tap any list to sync with your home screen widget",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
