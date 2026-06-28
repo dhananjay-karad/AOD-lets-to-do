@@ -1,0 +1,6 @@
+{
+  "name": "AOD Task Widget",
+  "description": "Always-On Display (AOD) widget overlay app to view and manage quick task lists on an OLED-friendly ambient screen.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
